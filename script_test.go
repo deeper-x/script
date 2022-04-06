@@ -544,6 +544,62 @@ func TestJoinJoinsInputLinesIntoSpaceSeparatedString(t *testing.T) {
 	}
 }
 
+func TestJQWithDotQueryPrettyPrintsInput(t *testing.T) {
+	t.Parallel()
+	input := `{"timestamp": 1649264191, "iss_position": {"longitude": "52.8439", "latitude": "10.8107"}, "message": "success"}`
+	// Fields should be sorted by key, with whitespace removed
+	want := `{"iss_position":{"latitude":"10.8107","longitude":"52.8439"},"message":"success","timestamp":1649264191}` + "\n"
+	got, err := script.Echo(input).JQ(".").String()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want != got {
+		t.Error(want, got)
+		t.Error(cmp.Diff(want, got))
+	}
+}
+
+func TestJQWithFieldQueryProducesSelectedField(t *testing.T) {
+	t.Parallel()
+	input := `{"timestamp": 1649264191, "iss_position": {"longitude": "52.8439", "latitude": "10.8107"}, "message": "success"}`
+	want := `{"latitude":"10.8107","longitude":"52.8439"}` + "\n"
+	got, err := script.Echo(input).JQ(".iss_position").String()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want != got {
+		t.Error(want, got)
+		t.Error(cmp.Diff(want, got))
+	}
+}
+
+func TestJQWithArrayQueryProducesRequiredArray(t *testing.T) {
+	t.Parallel()
+	input := `{"timestamp": 1649264191, "iss_position": {"longitude": "52.8439", "latitude": "10.8107"}, "message": "success"}`
+	want := `["10.8107","52.8439"]` + "\n"
+	got, err := script.Echo(input).JQ("[.iss_position.latitude, .iss_position.longitude]").String()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want != got {
+		t.Error(want, got)
+		t.Error(cmp.Diff(want, got))
+	}
+}
+
+func TestJQWithArrayInputAndElementQueryProducesSelectedElement(t *testing.T) {
+	t.Parallel()
+	input := `[1, 2, 3]`
+	want := "1\n"
+	got, err := script.Echo(input).JQ(".[0]").String()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want != got {
+		t.Error(cmp.Diff(want, got))
+	}
+}
+
 func TestLastDropsAllButLastNLinesOfInput(t *testing.T) {
 	t.Parallel()
 	input := "a\nb\nc\n"
